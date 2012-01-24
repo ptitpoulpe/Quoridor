@@ -25,6 +25,18 @@ object QDirection extends Enumeration {
   val East  = ( 1, 0)
   val South = ( 0,-1)
   val West  = (-1, 0)
+
+  def clockwise(dir:QDirection):QDirection = {
+    val (x,y) = dir; (y, -x)
+  }
+
+  def counterclockwise(dir:QDirection):QDirection = {
+    val (x,y) = dir; (-y, x)
+  }
+
+  def inv(dir:QDirection):QDirection = { 
+    val (x,y) = dir; (-x, -y)
+  }
 }
 import QDirection._
 
@@ -33,14 +45,22 @@ object Quoridor{
   val goals = List(South, North, East, West)
 
   def apply(size:Int = 9) = {
-    new Quoridor(size, HashSet(), 0, List((size/2, 0), (size/2,size-1)))
+    new Quoridor(size, HashSet(), 0, List((size/2, 0), (size/2,size-1)), None)
   }
 
   def apply(size:Int,
             walls:HashSet[(Int,Int,QOrientation)],
             round:Int,
             players:List[(Int,Int)]) = {
-    new Quoridor(size, walls, round, players)
+    new Quoridor(size, walls, round, players, None)
+  }
+
+  def apply(size:Int,
+            walls:HashSet[(Int,Int,QOrientation)],
+            round:Int,
+            players:List[(Int,Int)],
+            jump:Option[(Int,Int)]) = {
+    new Quoridor(size, walls, round, players, jump)
   }
 
 }
@@ -49,7 +69,8 @@ object Quoridor{
 class Quoridor(val size:Int,
                val walls:HashSet[(Int,Int,QOrientation)],
                val round:Int,
-               val players:List[(Int,Int)]) {
+               val players:List[(Int,Int)],
+               val jump:Option[(Int,Int)]) {
   
   val turn = round % players.length
 
@@ -58,6 +79,11 @@ class Quoridor(val size:Int,
     val (x,y) = pos
     val (xs,ys) = dir
     val posm@(xm,ym) = (x+xs, y+ys)
+    // bloc reversed jump
+    jump match {
+      case Some(pos) if posm==pos => return pos
+      case whatever => {}
+    }
     if (xm<0 | xm>=size | ym<0 | ym>=size) return pos
     dir match {
       case North if walls.contains((  x,  y,Horizontal)) |
@@ -77,11 +103,28 @@ class Quoridor(val size:Int,
     val pos = players(turn)
     val npos = possible_move(pos, dir)
     if (pos==npos) this
-    else Quoridor(size, walls, round+1, players.updated(turn, npos))
+    else if (players.contains(npos)) { // if a player at this position
+      val nnpos = possible_move(npos, dir)
+      if (npos==nnpos) { // if impossible to jump in front
+        val cwpos = possible_move(npos, QDirection.clockwise(dir))
+        val ccwpos = possible_move(npos, QDirection.counterclockwise(dir))
+        if (cwpos==npos & ccwpos==npos) // everything blocked
+          this 
+        else if (cwpos==npos) 
+          Quoridor(size, walls, round+1, players.updated(turn, ccwpos))
+        else if (ccwpos==npos)
+          Quoridor(size, walls, round+1, players.updated(turn, cwpos))
+        else // need the player to choice
+          Quoridor(size, walls, round, players.updated(turn, npos), Some(pos))
+      }else Quoridor(size, walls, round+1, players.updated(turn, nnpos))
+    }else Quoridor(size, walls, round+1, players.updated(turn, npos))
   }
 
   // put a wall if possible
   def put_wall(x:Int, y:Int, ori:QOrientation):Quoridor = {
+    // impossible to put a wall if jumping
+    if (!jump.isEmpty) return this
+    // check board limits
     if (x<0 | x>=size-1 | y<0 | y>=size-1) return this
     val (ox,oy) = QOrientation.coor(ori)
     // check wall collision
