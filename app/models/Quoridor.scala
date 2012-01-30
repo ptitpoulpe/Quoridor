@@ -1,3 +1,5 @@
+package models
+
 import scala.collection.immutable._
 
 // Orientation of the walls
