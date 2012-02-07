@@ -1,21 +1,9 @@
 @()(implicit request: RequestHeader)
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"> 
-<head> 
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /> 
-  <title>Quoridor</title>
-  <script src="@routes.Assets.at("javascripts/jquery-1.7.1.min.js")" type="text/javascript"></script>
-  <script src="@routes.Assets.at("javascripts/quoridor.js")" type="text/javascript"></script>
-</head> 
-<body id="body"> 
-Quoridor:	
-<canvas id="board" width="1200" height="800" border="1px"
-	style="position: absolute; left: 10; top: 10; z-index: 1;"> 
-  Perdu
-</canvas> 
+
+<script src="@routes.Assets.at("javascripts/quoridor.js")" type="text/javascript"></script>
 <script type="text/javascript">
   $(function() {
     window.Application.launch_quoridor("@routes.Application.getBoard().webSocketURL()");
   })
 </script> 
-</body> 
-</html> 
+

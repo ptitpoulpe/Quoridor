@@ -72,7 +72,7 @@ object ChatRoom {
         val enumerator =  Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
         
         (iteratee,enumerator)
-         
+       
     }
 
   }
@@ -82,6 +82,9 @@ object ChatRoom {
 class ChatRoom extends Actor {
   
   var members = Map.empty[String, PushEnumerator[JsValue]]
+  //Logger("test").info(controllers.routes.Application.quoridor()                              .webSocketURL())
+  
+  Logger("test").info(controllers.routes.Application.getBoard().url)  
   
   def receive = {
     
@@ -101,9 +104,15 @@ class ChatRoom extends Actor {
       notifyAll("join", username, "has entered the room")
     }
     
-    case Talk(username, text) => {
-      notifyAll("talk", username, text)
+    case Talk(username, text) => text match {
+        case "/quoridor" => members(username).push(JsObject(Seq(
+                              "kind"    -> JsString("command"),
+                              "command" -> JsString("quoridor"),
+                              "game_url"  -> JsString(controllers.routes.Application.quoridor.url))))
+        case "/help"     => notifyOne("talk", "", "help message", username)
+        case whatever    => notifyAll("talk", username, text)
     }
+    
     
     case Quit(username) => {
       members = members - username
@@ -111,7 +120,21 @@ class ChatRoom extends Actor {
     }
     
   }
-  
+
+  def notifyOne(kind: String, user: String, text: String, dst: String) {
+    val msg = JsObject(
+      Seq(
+        "kind" -> JsString(kind),
+        "user" -> JsString(user),
+        "message" -> JsString(text),
+        "members" -> JsArray(
+          members.keySet.toList.map(JsString)
+        )
+      )
+    )
+    members(dst).push(msg) 
+  }
+
   def notifyAll(kind: String, user: String, text: String) {
     val msg = JsObject(
       Seq(

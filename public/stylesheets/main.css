@@ -8,7 +8,7 @@ body {
     text-align: center; /* center align it with the container */
 }
 .container {
-    width: 820px; /* downsize our container to make the content feel a bit tighter and more cohesive. NOTE: this removes two full columns from the grid, meaning you only go to 14 columns and not 16. */
+    width: 1020px; /* downsize our container to make the content feel a bit tighter and more cohesive. NOTE: this removes two full columns from the grid, meaning you only go to 14 columns and not 16. */
 }
 
 /* The white background content wrapper */
@@ -33,15 +33,15 @@ body {
 }
 
 /* Styles you shouldn't keep as they are for displaying this base example only */
-.content .span10,
-.content .span4 {
+.span10,
+.span4 {
     min-height: 500px;
+    display: inline-block;
 }
 
 /* Give a quick and non-cross-browser friendly divider */
 .content .span4 {
     padding-left: 9px;
-    margin-left: 10px;
     border-left: 1px solid #eee;
 }
 
@@ -87,7 +87,7 @@ body {
 }
 
 .message span {
-    width: 70px;
+    width: 60px;
     overflow: hidden;
     text-align: right;
     font-weight: bold;
@@ -101,7 +101,7 @@ body {
 .message p {
     display: inline-block;
     margin: 0;
-    width: 500px;
+    width: 230px;
 }
 
 .message.me {
@@ -110,4 +110,26 @@ body {
 
 .message.join, .message.quit {
     background: #D9E7FB;
+}
+
+#chat {
+    display: inline-block;
+    /*border-style: solid;
+    border-width: 10px;
+    border-color: #F00;*/
+    width: 430px;
+}
+
+.span10 {
+    width: 300px;
+}
+.span4 {
+    width: 100px;
+}
+#board {
+    display: inline-block;
+    /*border-style: solid;
+    border-width: 10px;
+    border-color: #00F;*/
+    float: left;
 }

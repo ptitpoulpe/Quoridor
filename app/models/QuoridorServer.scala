@@ -17,17 +17,17 @@ object QuoridorServer {
   def create():Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
     val qs = Akka.system.actorOf(Props[QuoridorServer])
     val iteratee = Iteratee.foreach[JsValue] { event => 
-     Logger("quoridor").info("done")
      (event \ "type").asOpt[String] match {
-       case Some("move") => (event \ "dir").asOpt[List[Int]].map(x =>
-                               qs ! QMove((x(0),x(1))))
-       case Some("wall") => (event \ "x").asOpt[Int].map(x =>
-                            (event \ "y").asOpt[Int].map(y =>
-                            (event \ "ori").asOpt[Boolean].map(ori =>
-                               qs ! QWall(x, y, ori))))
-       case None         => {}
+       case Some("board") => qs ! QBoard()
+       case Some("move")  => (event \ "x").asOpt[Int].map(x =>
+                             (event \ "y").asOpt[Int].map(y =>
+                                qs ! QMove((x,y))))
+       case Some("wall")  => (event \ "x").asOpt[Int].map(x =>
+                             (event \ "y").asOpt[Int].map(y =>
+                             (event \ "ori").asOpt[Boolean].map(ori =>
+                                qs ! QWall(x, y, ori))))
+       case None          => {}
      }
-     //qs ! QMove(South)
     }
     (qs ? (QJoin(), 1 second)).asPromise.map {
       case QConnected(player) => 
@@ -44,12 +44,13 @@ class QuoridorServer extends Actor {
   def receive = {
     case QJoin() => {
       sender ! QConnected(player)
-      player.push(JsObject(Seq("test" -> JsString("toto"))))
+      send_board()
     }
-    case QMove(dir) => {
-      quoridor = quoridor.move_player(dir)
-      Logger("quoridor").info("send")
-      Logger("quoridor").info(quoridor.players.toString())
+    case QBoard() => {
+      send_board()
+    }
+    case QMove((x,y)) => {
+      quoridor = quoridor.move_player(x,y)
       send_board()
     }
     case QWall(x, y, ori) => {
@@ -71,7 +72,11 @@ class QuoridorServer extends Actor {
                                    .map({case (x, y, ori) =>
                                           JsArray(List(JsNumber(x),
                                                        JsNumber(y),
-                                                       JsBoolean(ori)))}))
+                                                       JsBoolean(ori)))})),
+        "possible_moves" -> JsArray(quoridor.possible_moves.toList
+                                            .map({case (x, y) =>
+                                                   JsArray(List(JsNumber(x),
+                                                                JsNumber(y)))}))
       )
     )
     player.push(msg)
@@ -81,5 +86,6 @@ class QuoridorServer extends Actor {
 
 case class QConnected(enumerator:Enumerator[JsValue])
 case class QJoin()
-case class QMove(dir: QDirection)
+case class QBoard()
+case class QMove(pos: (Int,Int))
 case class QWall(x: Int, y: Int, ori:QOrientation)
