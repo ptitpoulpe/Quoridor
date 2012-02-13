@@ -5,14 +5,18 @@ window.Application.launch_quoridor = (ws_url) ->
     turn: false
     size: 9
     round: 0
-    players: [[4,0], [4,8]]
+    players: [[[4,0],9], [[4,8],9]]
     walls: []
     possible_moves: []
-  chatSocket = new WebSocket(ws_url)
+  if ('WebSocket' in window)
+    chatSocket = new WebSocket(ws_url)
+  else if ('MozWebSocket' in window)
+    chatSocket = new MozWebSocket(ws_url)
+  else
+    return
   chatSocket.onmessage = (event) ->
     q = JSON.parse(event.data)
     if !q.turn
-      q.walls = []
       q.possible_moves = []
     draw_board()
   chatSocket.onopen = (e) ->
@@ -31,13 +35,13 @@ window.Application.launch_quoridor = (ws_url) ->
   
   # graphics dimensions
   x_shift     = 30
-  y_shift     = 100
+  y_shift     = 160
   case_size   = 30
   wall_size   = 10
   pawn_size   = 30
   p_shift     = case_size/2
   x_hud_shift = x_shift + 30
-  y_hud_shift = y_shift - 40
+  y_hud_shift = y_shift - 100
   players_color = ["#00F", "#F00"]
   dir_buttons = [[[    case_size+wall_size, 2*(case_size+wall_size)], Dir.N],
                  [[    case_size+wall_size,                       0], Dir.S],
@@ -64,7 +68,13 @@ window.Application.launch_quoridor = (ws_url) ->
   small_wall = {}
   small_wall[Ori.H] = [case_size, wall_size]
   small_wall[Ori.V] = [wall_size, case_size]
-  
+  pwalls_shift = [[x_shift-case_size+wall_size,
+                   y_shift-(case_size*2+wall_size+10),
+                   wall_size*2],
+                  [x_shift+q.size*(case_size+wall_size),
+                   y_shift-(case_size*2+wall_size+10),
+                   -wall_size*2]]  
+
   # graphics objects
   board   = null
   bd_ctx = null
@@ -131,8 +141,13 @@ window.Application.launch_quoridor = (ws_url) ->
     # print players
     for i in [0..q.players.length-1]
       br_ctx.fillStyle = players_color[i]
-      [x,y] = q.players[i]
+      [[x,y], nbwalls] = q.players[i]
       fill_circle(br_ctx,x_shift+x*(case_size+wall_size)+p_shift,y_shift+y*(case_size+wall_size)+p_shift,pawn_size/2)
+      # print remaining walls 
+      [dx, dy, vx] = pwalls_shift[i]
+      [sx, sy] = big_wall[Ori.V]
+      for w in [1..nbwalls]
+        br_ctx.fillRect(dx+w*vx, dy, sx, sy)
   
     bd_ctx.clearRect(0, 0, board.width, board.height)
     bd_ctx.drawImage(buffer, 0, 0)

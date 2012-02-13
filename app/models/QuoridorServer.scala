@@ -5,9 +5,8 @@ import akka.util.duration._
 
 import play.api._
 import play.api.libs.json._
-import play.api.libs.akka._
 import play.api.libs.iteratee._
-import play.api.libs.concurrent.Promise
+import play.api.libs.concurrent._
 
 import play.api.Play.current
 import models.QDirection._
@@ -68,7 +67,7 @@ class QuoridorServer(id:String) extends Actor {
   def receive = {
     case QJoin(username) => {
       if (players.size<2 | players.contains(username)) {
-        val player = new PushEnumerator[JsValue]
+        val player = Enumerator.imperative[JsValue]()
         players += (username -> ((if (players.contains(username))
                                     players(username)._1
                                   else players.size, 
@@ -103,9 +102,10 @@ class QuoridorServer(id:String) extends Actor {
         "size" -> JsNumber(quoridor.size),
         "round" -> JsNumber(quoridor.round),
         "players" -> JsArray(quoridor.players
-                                     .map({case (x,y) =>
-                                            JsArray(List(JsNumber(x),
-                                                         JsNumber(y)))})),
+                                     .map({case Player((x,y), nbwalls) =>
+                                            JsArray(List(JsArray(List(JsNumber(x),
+                                                                      JsNumber(y))),
+                                                         JsNumber(nbwalls)))})),
         "walls" -> JsArray(quoridor.walls.toList
                                    .map({case (x, y, ori) =>
                                           JsArray(List(JsNumber(x),

@@ -5,20 +5,20 @@ import akka.util.duration._
 
 import play.api._
 import play.api.libs.json._
-import play.api.libs.akka._
 import play.api.libs.iteratee._
-import play.api.libs.concurrent.Promise
+import play.api.libs.concurrent._
 
 import play.api.Play.current
 import scala.util.matching.Regex
 
 object ChatRoom {
   
-  val RQuoridor = new Regex("""/quoridor (\S+)""")
+  val RQuoridor = new Regex("""/quoridor *(\S*)""")
 
   lazy val default =  Akka.system.actorOf(Props[ChatRoom])
 
   def join(username:String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
+    Logger.info("try to log: "+username)
     (default ? (Join(username), 1 second)).asPromise.map {
       
       case Connected(enumerator) => 
@@ -58,7 +58,7 @@ class ChatRoom extends Actor {
     
     case Join(username) => {
       // Create an Enumerator to write to this socket
-      val channel = new PushEnumerator[JsValue]( onStart = self ! NotifyJoin(username))
+      val channel = Enumerator.imperative[JsValue](onStart = self ! NotifyJoin(username))
       if(members.contains(username)) {
         sender ! CannotConnect("This username is already used")
       } else {

@@ -20,6 +20,8 @@ object QOrientation extends Enumeration {
 }
 import QOrientation._
 
+case class Player(pos:(Int,Int), nbwalls:Int)
+
 // Direction to move
 object QDirection extends Enumeration {
   type QDirection = (Int, Int)
@@ -49,13 +51,14 @@ object Quoridor{
   val goals = List(South, North, East, West)
 
   def apply(size:Int = 9) = {
-    new Quoridor(size, HashSet(), 0, List((size/2, 0), (size/2,size-1)))
+    new Quoridor(size, HashSet(), 0, List(Player((size/2,     0), size),
+                                          Player((size/2,size-1), size)))
   }
 
   def apply(size:Int,
             walls:HashSet[(Int,Int,QOrientation)],
             round:Int,
-            players:List[(Int,Int)]) = {
+            players:List[Player]) = {
     new Quoridor(size, walls, round, players)
   }
 
@@ -65,12 +68,12 @@ object Quoridor{
 class Quoridor(val size:Int,
                val walls:HashSet[(Int,Int,QOrientation)],
                val round:Int,
-               val players:List[(Int,Int)]) {
+               val players:List[Player]) {
   
   val turn = round % players.length
 
   val possible_moves = {
-    val pos@(x,y) = players(turn)
+    val pos@(x,y) = players(turn).pos
     var poss:Set[(Int,Int)] = Set()
     for (dir <- QDirection.dirs) {
       val npos = possible_move(pos, dir)
@@ -111,7 +114,8 @@ class Quoridor(val size:Int,
   // move current player to the direction if possible
   def move_player(pos:(Int,Int)):Quoridor = {
     if (possible_moves.contains(pos))
-       Quoridor(size, walls, round+1, players.updated(turn, pos))
+       Quoridor(size, walls, round+1,
+                players.updated(turn, Player(pos, players(turn).nbwalls)))
     else
       this
   }
@@ -119,7 +123,9 @@ class Quoridor(val size:Int,
   // put a wall if possible
   def put_wall(x:Int, y:Int, ori:QOrientation):Quoridor = {
     // check board limits
+    val Player(ppos, pnbwalls) = players(turn)
     if (x<0 | x>=size-1 | y<0 | y>=size-1) return this
+    if (pnbwalls<=0) return this
     val (ox,oy) = QOrientation.coor(ori)
     // check wall collision
     if (walls.contains((x,y,QOrientation.rev(ori)))|
@@ -127,11 +133,12 @@ class Quoridor(val size:Int,
         walls.contains((x+ox,y+oy,ori))            |
         walls.contains((x-ox,y-oy,ori))            ) return this
     val nwall = (x,y,ori)
-    val nquoridor = Quoridor(size, walls + nwall, round+1, players)
+    val nquoridor = Quoridor(size, walls + nwall, round+1,
+                             players.updated(turn, Player(ppos, pnbwalls-1)))
     // check goals
     if (players.zip(Quoridor.goals)
-               .forall({case (player, goal) =>
-                         nquoridor.seek_goal(Queue(player),
+               .forall({case (Player(pos, nbwalls), goal) =>
+                         nquoridor.seek_goal(Queue(pos),
                                               HashSet(),
                                               goal)}))
        nquoridor
