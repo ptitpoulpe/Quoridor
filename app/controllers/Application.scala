@@ -37,19 +37,19 @@ object Application extends Controller {
   /**
    * Handles the chat websocket.
    */
-  def chat(username: String) = WebSocket.async[JsValue] { request  =>
+  def chat(username:String) = WebSocket.async[JsValue] { request  =>
     ChatRoom.join(username)
   }
  
   /**
    * Handles the quoridor page
    */
-  def quoridor = Action { implicit request => 
-    Ok(views.html.quoridor())
+  def quoridor(username:Option[String], qid:Option[String]) = Action { implicit request => 
+    Ok(views.html.quoridor(username, qid))
   }
 
-  def getBoard() = WebSocket.async[JsValue] { request =>
-    QuoridorServer.create()
+  def getBoard(username:Option[String], qid:Option[String]) = WebSocket.async[JsValue] { request =>
+    QuoridorServer.create_or_join(username, qid)
   }
 
 

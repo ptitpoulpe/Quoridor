@@ -1,6 +1,8 @@
 window.Application ||= {}
 window.Application.launch_quoridor = (ws_url) ->
-  q = 
+  q =
+    id: "" 
+    turn: false
     size: 9
     round: 0
     players: [[4,0], [4,8]]
@@ -9,6 +11,9 @@ window.Application.launch_quoridor = (ws_url) ->
   chatSocket = new WebSocket(ws_url)
   chatSocket.onmessage = (event) ->
     q = JSON.parse(event.data)
+    if !q.turn
+      q.walls = []
+      q.possible_moves = []
     draw_board()
   chatSocket.onopen = (e) ->
     chatSocket.send(JSON.stringify({type: "board"}))
@@ -89,13 +94,15 @@ window.Application.launch_quoridor = (ws_url) ->
     # print hud
     br_ctx.fillStyle = "#000"
     br_ctx.font = "20px sans-serif"
+    br_ctx.fillText("Id: " + q.id,
+                    x_hud_shift, y_hud_shift-30)
     br_ctx.fillText("Round: "+q.round,
                     x_hud_shift, y_hud_shift)
     br_ctx.fillText("Player: ",
                     x_hud_shift+150, y_hud_shift)
     br_ctx.fillStyle = players_color[q.round%q.players.length]
     fill_circle(br_ctx,
-                x_hud_shift+230,
+                x_hud_shift+235,
                 y_hud_shift-5,
                 pawn_size/2)
   
@@ -131,41 +138,43 @@ window.Application.launch_quoridor = (ws_url) ->
     bd_ctx.drawImage(buffer, 0, 0)
   
   ev_mousemove = (ev) ->
-    x = ev.offsetX
-    y = ev.offsetY
-    todraw = []
-    bd_ctx.fillStyle = "#FFF"
-    for _, v of gwalls
-      [[kx, ky, kori], [dx,dy]] = v
-      [sx,sy] = small_wall[kori]
-      [tx,ty] = big_wall[kori]
-      bd_ctx.fillRect(dx, dy, tx, ty)
-      if (dx<x && x<dx+sx && dy<y && y<dy+sy)
-        todraw[todraw.length] = [dx, dy, tx, ty]
-    # print walls
-    bd_ctx.fillStyle = "#000"
-    for w in q.walls
-      [[kx, ky, kori], [dx,dy]] = gwalls[w]
-      [sx, sy] = big_wall[kori]
-      bd_ctx.fillRect(dx, dy, sx, sy)
-    bd_ctx.fillStyle = "#AAA"
-    for [dx, dy, tx, ty] in todraw
-      bd_ctx.fillRect(dx, dy, tx, ty)
+    if q.turn
+      x = ev.offsetX
+      y = ev.offsetY
+      todraw = []
+      bd_ctx.fillStyle = "#FFF"
+      for _, v of gwalls
+        [[kx, ky, kori], [dx,dy]] = v
+        [sx,sy] = small_wall[kori]
+        [tx,ty] = big_wall[kori]
+        bd_ctx.fillRect(dx, dy, tx, ty)
+        if (dx<x && x<dx+sx && dy<y && y<dy+sy)
+          todraw[todraw.length] = [dx, dy, tx, ty]
+      # print walls
+      bd_ctx.fillStyle = "#000"
+      for w in q.walls
+        [[kx, ky, kori], [dx,dy]] = gwalls[w]
+        [sx, sy] = big_wall[kori]
+        bd_ctx.fillRect(dx, dy, sx, sy)
+      bd_ctx.fillStyle = "#AAA"
+      for [dx, dy, tx, ty] in todraw
+        bd_ctx.fillRect(dx, dy, tx, ty)
 
   ev_mousedown = (ev) ->
-    x = ev.offsetX
-    y = ev.offsetY
-    # check move
-    for [dx,dy] in q.possible_moves
-      [gx, gy] = gcases[[dx,dy]]
-      if (gx<x && x<gx+case_size && gy<y && y<gy+case_size)
-        chatSocket.send(JSON.stringify({type: "move", x: dx, y: dy}))
+    if q.turn
+      x = ev.offsetX
+      y = ev.offsetY
+      # check move
+      for [dx,dy] in q.possible_moves
+        [gx, gy] = gcases[[dx,dy]]
+        if (gx<x && x<gx+case_size && gy<y && y<gy+case_size)
+          chatSocket.send(JSON.stringify({type: "move", x: dx, y: dy}))
 
-    # check walls
-    for _, v of gwalls
-      [[kx, ky, kori], [dx,dy]] = v
-      [sx,sy] = small_wall[kori]
-      if (dx<x && x<dx+sx && dy<y && y<dy+sy)
-        chatSocket.send(JSON.stringify({type: "wall", x: kx, y: ky, ori: kori}))
+      # check walls
+      for _, v of gwalls
+        [[kx, ky, kori], [dx,dy]] = v
+        [sx,sy] = small_wall[kori]
+        if (dx<x && x<dx+sx && dy<y && y<dy+sy)
+          chatSocket.send(JSON.stringify({type: "wall", x: kx, y: ky, ori: kori}))
     
   init()

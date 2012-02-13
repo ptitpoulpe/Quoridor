@@ -10,42 +10,13 @@ import play.api.libs.iteratee._
 import play.api.libs.concurrent.Promise
 
 import play.api.Play.current
-
-object Robot {
-  
-  def apply(chatRoom: ActorRef) {
-    
-    // Create an Iteratee that log all messages to the console.
-    val loggerIteratee = Iteratee.foreach[JsValue](event => Logger("robot").info(event.toString))
-    
-    // Make the robot join the room
-    chatRoom ? (Join("Robot"), 1 seconds) map {
-      case Connected(robotChannel) => 
-        // Apply this Enumerator on the logger.
-        robotChannel |>> loggerIteratee
-    }
-    
-    // Make the robot talk every 30 seconds
-    Akka.system.scheduler.schedule(
-      30 seconds,
-      30 seconds,
-      chatRoom,
-      Talk("Robot", "I'm still alive")
-    )
-  }
-  
-}
+import scala.util.matching.Regex
 
 object ChatRoom {
   
-  lazy val default = {
-    val roomActor = Akka.system.actorOf(Props[ChatRoom])
-    
-    // Create a bot user (just for fun)
-    Robot(roomActor)
-    
-    roomActor
-  }
+  val RQuoridor = new Regex("""/quoridor (\S+)""")
+
+  lazy val default =  Akka.system.actorOf(Props[ChatRoom])
 
   def join(username:String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
     (default ? (Join(username), 1 second)).asPromise.map {
@@ -82,9 +53,6 @@ object ChatRoom {
 class ChatRoom extends Actor {
   
   var members = Map.empty[String, PushEnumerator[JsValue]]
-  //Logger("test").info(controllers.routes.Application.quoridor()                              .webSocketURL())
-  
-  Logger("test").info(controllers.routes.Application.getBoard().url)  
   
   def receive = {
     
@@ -105,10 +73,15 @@ class ChatRoom extends Actor {
     }
     
     case Talk(username, text) => text match {
-        case "/quoridor" => members(username).push(JsObject(Seq(
+        case ChatRoom.RQuoridor(qid) => members(username).push(JsObject(Seq(
                               "kind"    -> JsString("command"),
                               "command" -> JsString("quoridor"),
-                              "game_url"  -> JsString(controllers.routes.Application.quoridor.url))))
+                              "game_url"  -> JsString(controllers
+                                                      .routes
+                                                      .Application
+                                                      .quoridor(Some(username),
+                                                                if (qid=="") None
+                                                                else Some(qid)).url))))
         case "/help"     => notifyOne("talk", "", "help message", username)
         case whatever    => notifyAll("talk", username, text)
     }
