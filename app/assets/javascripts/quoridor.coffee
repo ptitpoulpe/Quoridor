@@ -8,9 +8,9 @@ window.Application.launch_quoridor = (ws_url) ->
     players: [[[4,0],9], [[4,8],9]]
     walls: []
     possible_moves: []
-  if ('WebSocket' in window)
+  if (`'WebSocket' in window`)
     chatSocket = new WebSocket(ws_url)
-  else if ('MozWebSocket' in window)
+  else if (`'MozWebSocket' in window`)
     chatSocket = new MozWebSocket(ws_url)
   else
     return
@@ -80,9 +80,24 @@ window.Application.launch_quoridor = (ws_url) ->
   bd_ctx = null
   buffer = null
   br_ctx = null
-  
+  b_x_offset = 0
+  b_y_offset = 0
+
+  find_pos = (obj) ->
+    curleft = curtop = 0
+    if (obj.offsetParent)
+      loop
+        curleft += obj.offsetLeft
+        curtop += obj.offsetTop
+        break unless (obj = obj.offsetParent)
+    return [curleft,curtop]
+
   init = ->
     board = document.getElementById('board')
+    # compute board offset
+    [b_x_offset, b_y_offset] = find_pos(board)
+    
+    # init all things
     bd_ctx = board.getContext('2d')
     buffer = document.createElement('canvas')
     buffer.width  = board.width
@@ -153,9 +168,14 @@ window.Application.launch_quoridor = (ws_url) ->
     bd_ctx.drawImage(buffer, 0, 0)
   
   ev_mousemove = (ev) ->
-    if q.turn
+    if (ev.layerX || ev.layerX==0) # Firefox
+      x = ev.layerX - b_x_offset
+      y = ev.layerY - b_y_offset
+    else if (ev.offsetX || ev.offsetX==0) # Opera
       x = ev.offsetX
       y = ev.offsetY
+  
+    if q.turn
       todraw = []
       bd_ctx.fillStyle = "#FFF"
       for _, v of gwalls
@@ -176,9 +196,13 @@ window.Application.launch_quoridor = (ws_url) ->
         bd_ctx.fillRect(dx, dy, tx, ty)
 
   ev_mousedown = (ev) ->
-    if q.turn
+    if (ev.layerX || ev.layerX==0) # Firefox
+      x = ev.layerX - b_x_offset
+      y = ev.layerY - b_y_offset
+    else if (ev.offsetX || ev.offsetX==0) # Opera
       x = ev.offsetX
       y = ev.offsetY
+    if q.turn
       # check move
       for [dx,dy] in q.possible_moves
         [gx, gy] = gcases[[dx,dy]]

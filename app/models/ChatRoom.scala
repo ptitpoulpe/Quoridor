@@ -8,18 +8,23 @@ import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
 
+import akka.util.Timeout
+import akka.pattern.ask
+
 import play.api.Play.current
 import scala.util.matching.Regex
 
 object ChatRoom {
   
   val RQuoridor = new Regex("""/quoridor *(\S*)""")
-
+  
+  implicit val timeout = Timeout(1 second)
+  
   lazy val default =  Akka.system.actorOf(Props[ChatRoom])
 
   def join(username:String):Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
     Logger.info("try to log: "+username)
-    (default ? (Join(username), 1 second)).asPromise.map {
+    (default ? Join(username)).asPromise.map {
       
       case Connected(enumerator) => 
       

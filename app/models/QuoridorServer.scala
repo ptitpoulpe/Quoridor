@@ -8,12 +8,17 @@ import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
 
+import akka.util.Timeout
+import akka.pattern.ask
+
 import play.api.Play.current
 import models.QDirection._
 import models.QOrientation._
 
 object QuoridorServer {
   var quoridors = Map.empty[String, ActorRef] 
+
+  implicit val timeout = Timeout(1 second)
 
   def create_or_join(username:Option[String], qid:Option[String])
         :Promise[(Iteratee[JsValue,_],Enumerator[JsValue])] = {
@@ -27,7 +32,7 @@ object QuoridorServer {
         if (!quoridors.contains(sid)) 
           quoridors += (sid -> Akka.system.actorOf(Props(new QuoridorServer(sid))))
         val qs = quoridors(sid)
-        (qs ? (QJoin(susername), 1 second)).asPromise.map {
+        (qs ? QJoin(susername)).asPromise.map {
           case QConnected(player) =>
             val iteratee = Iteratee.foreach[JsValue] { event => 
                           (event \ "type").asOpt[String] match {
