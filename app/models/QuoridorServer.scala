@@ -123,8 +123,13 @@ class QuoridorServer(id:String) extends Actor {
       )
     )
     players.foreach {case (username, (i, player)) => 
-                      player.push(msg ++ JsObject(Seq("turn" -> 
-                                                      JsBoolean(i==quoridor.turn))))}
+                      player.push(msg ++ JsObject(
+                        Seq("player"  -> JsNumber(i),
+                            "turn"    -> JsBoolean(i==quoridor.turn),
+                            "winner"  -> JsNumber({quoridor.winner match {
+                                                    case Some(player) =>
+                                                      quoridor.players.indexOf(player)
+                                                    case None => -1}}))))}
   }
  
 }

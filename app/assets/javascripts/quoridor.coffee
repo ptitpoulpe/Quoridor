@@ -5,6 +5,7 @@ window.Application.launch_quoridor = (ws_url) ->
     turn: false
     size: 9
     round: 0
+    winner: -1
     players: [[[4,0],9], [[4,8],9]]
     walls: []
     possible_moves: []
@@ -120,14 +121,27 @@ window.Application.launch_quoridor = (ws_url) ->
     br_ctx.fillStyle = "#000"
     br_ctx.font = "20px sans-serif"
     br_ctx.fillText("Id: " + q.id,
-                    x_hud_shift, y_hud_shift-30)
+                    x_hud_shift, y_hud_shift-35)
+    br_ctx.fillText("You: ",
+                    x_hud_shift+150, y_hud_shift-35)
+    if q.winner>=0
+        msg = if q.winner==q.player then "Winner" else "Looser"
+        br_ctx.fillText(msg, x_hud_shift+250, y_hud_shift-35)
+
     br_ctx.fillText("Round: "+q.round,
                     x_hud_shift, y_hud_shift)
-    br_ctx.fillText("Player: ",
+    br_ctx.fillText("Turn: ",
                     x_hud_shift+150, y_hud_shift)
+    # You player
+    br_ctx.fillStyle = players_color[q.player%q.players.length]
+    fill_circle(br_ctx,
+                x_hud_shift+225,
+                y_hud_shift-40,
+                pawn_size/2)
+    # Turn player
     br_ctx.fillStyle = players_color[q.round%q.players.length]
     fill_circle(br_ctx,
-                x_hud_shift+235,
+                x_hud_shift+225,
                 y_hud_shift-5,
                 pawn_size/2)
   

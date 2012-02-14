@@ -71,22 +71,30 @@ class Quoridor(val size:Int,
                val players:List[Player]) {
   
   val turn = round % players.length
+  
+  val winner = players.zip(Quoridor.goals)
+                      .find({case (Player(pos, nbwalls), goal) =>
+                               satisfy_goal(pos, goal)}) match {
+                 case Some((player, _)) => Some(player)
+                 case None              => None }
 
   val possible_moves = {
     val pos@(x,y) = players(turn).pos
     var poss:Set[(Int,Int)] = Set()
-    for (dir <- QDirection.dirs) {
-      val npos = possible_move(pos, dir)
-      if (npos!=pos) {
-        if (players.contains(npos)) {
-          val nnpos = possible_move(npos, dir)
-          if (nnpos!=npos)
-            poss += nnpos
-          else 
-            poss ++= List(possible_move(npos, QDirection.counterclockwise(dir)),
-                          possible_move(npos, QDirection.clockwise(dir)))
-                    .filter(_!=npos)
-        } else poss += npos
+    if (winner.isEmpty) {
+      for (dir <- QDirection.dirs) {
+        val npos = possible_move(pos, dir)
+        if (npos!=pos) {
+          if (players.exists(_.pos==npos)) {
+            val nnpos = possible_move(npos, dir)
+            if (nnpos!=npos)
+              poss += nnpos
+            else 
+              poss ++= List(possible_move(npos, QDirection.counterclockwise(dir)),
+                            possible_move(npos, QDirection.clockwise(dir)))
+                      .filter(_!=npos)
+          } else poss += npos
+        }
       }
     }
     poss
@@ -122,6 +130,7 @@ class Quoridor(val size:Int,
 
   // put a wall if possible
   def put_wall(x:Int, y:Int, ori:QOrientation):Quoridor = {
+    if (!winner.isEmpty) return this
     // check board limits
     val Player(ppos, pnbwalls) = players(turn)
     if (x<0 | x>=size-1 | y<0 | y>=size-1) return this
