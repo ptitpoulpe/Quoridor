@@ -17,7 +17,7 @@ import scala.util.matching.Regex
 object ChatRoom {
   
   val RQuoridor = new Regex("""/quoridor *(\S*)""")
-  
+  val RKhet     = new Regex("""/khet *(\S*)""") 
   implicit val timeout = Timeout(1 second)
   
   lazy val default =  Akka.system.actorOf(Props[ChatRoom])
@@ -87,6 +87,16 @@ class ChatRoom extends Actor {
                                                       .quoridor(Some(username),
                                                                 if (qid=="") None
                                                                 else Some(qid)).url))))
+
+        case ChatRoom.RKhet(kid) => members(username).push(JsObject(Seq(
+                              "kind"    -> JsString("command"),
+                              "command" -> JsString("keth"),
+                              "game_url"  -> JsString(controllers
+                                                      .routes
+                                                      .Application
+                                                      .khet(Some(username),
+                                                            if (kid=="") None
+                                                            else Some(kid)).url))))
         case "/help"     => notifyOne("talk", "", "help message", username)
         case whatever    => notifyAll("talk", username, text)
     }

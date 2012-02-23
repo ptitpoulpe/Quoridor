@@ -5,6 +5,9 @@ window.Application ||= {}
 window.Application.launch_khet = (ws_url) ->
   khet = 
     id: ""
+    round: ""
+    player: ""
+    turn: ""
     pawns: []
     beam: []
     killed: []
@@ -25,7 +28,7 @@ window.Application.launch_khet = (ws_url) ->
 
   # constants
   x_shift = 40
-  y_shift = 40
+  y_shift = 140
   x_shift_board = 6
   y_shift_board = 10
   wall_board = 5
@@ -48,6 +51,7 @@ window.Application.launch_khet = (ws_url) ->
 
   # drawing
   board = null
+  hud = {}
   pawns = {}
   killed = {}
   beam = null
@@ -101,12 +105,27 @@ window.Application.launch_khet = (ws_url) ->
       a.hide()
 
   init = (svg) ->
-    board = Raphael('board', 700, 563)
+    $('#board>*').remove()
+
+    # hud
+    dhud = $(document.createElement('div'))
+    dhud.append("<b>Turn:</b>")
+    hud['turn'] = $(document.createElement('span'))
+    dhud.append(hud['turn'])
+    $('#board').append(dhud)
+
+    # board
+    dboard = document.createElement('div')
+    dboard.setAttribute("width", "500")
+    dboard.setAttribute("height", "550")
+    $('#board').append($(dboard))
+    board = Raphael(dboard, 470, 378)
+    board.setViewBox(0,0,700,564, true)
     bkg = board.image('assets/images/khet/board.png', 0, 0, 700, 563)
 
     for i in [0..(blocs_type.length-1)]
       bt = blocs_type[i]
-      for [cb, cs] in [[true, 'r'], [false, 'b']]
+      for [cb, cs] in [[0, 'r'], [1, 'b']]
         img = board.image("assets/images/khet/#{ bt }-#{ cs }.png", 0, 0, 64, 64)
         img.hide()
         blocs[[cb,i]] = img
@@ -140,6 +159,7 @@ window.Application.launch_khet = (ws_url) ->
       ).click( () ->
         sendMove(this.data('moveType'), this.data('moveDir'),
                  this.data('x'), this.data('y'))
+        hide_arrows()
       )
       arrows[arrows.length] = e
     
@@ -159,6 +179,8 @@ window.Application.launch_khet = (ws_url) ->
   draw_board = ->
     beam.remove()
     beam.clear()
+    hud['turn'].text(" "+khet.turn)
+
     # killed pawn
     for pid, pawn of killed
       pawn.remove()
@@ -177,7 +199,8 @@ window.Application.launch_khet = (ws_url) ->
                         .translate(dx, dy)
                         .rotate((d+90))
                         .mouseover(() ->
-                          show_arrows(this.data('x'), this.data('y'))
+                          if (khet.turn & khet.player==c)
+                            show_arrows(this.data('x'), this.data('y'))
                         )
         killed[pawn] = p
 
@@ -193,10 +216,12 @@ window.Application.launch_khet = (ws_url) ->
         p = blocs[[c,t]].clone()
                         .data('x', x)
                         .data('y', y)
+                        .data('c', c)
                         .translate(dx, dy)
                         .rotate((d+90))
                         .mouseover(() ->
-                          show_arrows(this.data('x'), this.data('y'))
+                          if (khet.turn & khet.player==this.data('c'))
+                            show_arrows(this.data('x'), this.data('y'))
                         )
         npawns[pawn] = p
     # clean pawns

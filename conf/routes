@@ -7,7 +7,10 @@ GET     /                           controllers.Application.index()
 GET     /room                       controllers.Application.chatRoom(username: Option[String] ?= None)
 GET     /room/chat                  controllers.Application.chat(username)
 GET     /quoridor                   controllers.Application.quoridor(username: Option[String] ?= None, qid: Option[String] ?= None)
-GET     /quoridor/getBoard          controllers.Application.getBoard(username: Option[String] ?= None, qid: Option[String] ?= None)
+GET     /quoridorWS          controllers.Application.quoridorWS(username: Option[String] ?= None, qid: Option[String] ?= None)
+GET     /khet                       controllers.Application.khet(username: Option[String] ?= None, qid: Option[String] ?= None)
+GET     /khetWS                     controllers.Application.khetWS(username: Option[String] ?= None, qid: Option[String] ?= None)
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

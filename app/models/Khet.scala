@@ -2,9 +2,9 @@ package models
 import scala.collection.immutable._
 
 object KColor extends Enumeration {
-  type KColor = Boolean
-  val Red = true
-  val Black = false
+  type KColor = Int
+  val Red = 0
+  val Black = 1
 }
 import KColor._
 
@@ -49,6 +49,9 @@ case class Pawn(t:KType, color:KColor, dir:KDirection)
 
 object Khet {
 
+  val beams = List(List(((9, 8), North)),
+                   List(((0,-1), South)))
+
   def apply() = {
     val reds = Map((0,3) -> Pawn(Pyramid, Red,  East),
                    (0,4) -> Pawn(Pyramid, Red, South),
@@ -86,16 +89,18 @@ object Khet {
     new Khet(reds ++ blacks, 0)
   }
 
-  def apply(pawns:Map[(Int, Int), Pawn], turn:Int) = {
-    new Khet(pawns, turn)
+  def apply(pawns:Map[(Int, Int), Pawn], round:Int) = {
+    new Khet(pawns, round)
   }
+
 }
 
 class Khet(apawns:Map[(Int, Int), Pawn],
-           val turn:Int ) {
+           val round:Int ) {
 
-  val (beam, pawns, kpawns) = beamer(apawns, List(((0,0), South)))
-  println("bm"+beam.toString)
+  val turn = round % 2
+  
+  val (beam, pawns, kpawns) = beamer(apawns, Khet.beams(turn))
 
   def possible_move(pos:(Int,Int), color:KColor):Boolean = {
     val (x,y) = pos
@@ -113,20 +118,21 @@ class Khet(apawns:Map[(Int, Int), Pawn],
     if ( 0 > dx | dx > 9 | 0 > dy | dy > 7) return this 
     if (sx < -1 | 1 < sx | sy < -1 | 1 < sy) return this
     pawns.get(pos) match {
+      case Some(Pawn(_,c,_)) if c!=turn => this
       case Some(Pawn(Sphinx,_,_)) => this
       case Some(Pawn(_,c,_)) if !possible_move(dpos, c) => this
       case Some(pawn@Pawn(Scarab,c,d)) =>
         pawns.get((dx, dy)) match {
           case Some(rpawn@Pawn(t,_,_)) if List(Anubis,Pyramid).contains(t) =>
-            Khet((pawns - pos - dpos) ++ List((dpos, pawn), (pos, rpawn)), turn+1)
+            Khet((pawns - pos - dpos) ++ List((dpos, pawn), (pos, rpawn)), round+1)
           case None =>
-            Khet((pawns - pos) + ((dpos, pawn)), turn+1)
+            Khet((pawns - pos) + ((dpos, pawn)), round+1)
           case whatever => this
         }
       case Some(pawn@Pawn(_,c,d)) =>
         pawns.get((dx, dy)) match {
           case Some(_) => this
-          case None    => Khet((pawns - pos) + ((dpos, pawn)), turn+1)
+          case None    => Khet((pawns - pos) + ((dpos, pawn)), round+1)
         }
       case None       => this
     }
@@ -135,13 +141,14 @@ class Khet(apawns:Map[(Int, Int), Pawn],
   def rotate(pos:(Int,Int), cw:Boolean):Khet = {
     val rotate_ = if (cw) clockwise _ else counterclockwise _
     (pawns.get(pos), cw) match {
+      case (Some(Pawn(_,c,_)), _) if c!=turn => this      
       case (Some(Pawn(Sphinx, c, d)), cw) if !List((  Red,  East,  true),
                                                   (  Red, South, false),
                                                   (Black,  West,  true),
                                                   (Black, North, false))
                                              .contains((c,d,cw)) => this
       case (Some(pawn@Pawn(t,c,d)), _) =>
-        Khet(pawns.updated(pos, Pawn(t,c,rotate_(d))), turn+1)
+        Khet(pawns.updated(pos, Pawn(t,c,rotate_(d))), round+1)
       case wathever      => this
     }
   }
@@ -152,10 +159,10 @@ class Khet(apawns:Map[(Int, Int), Pawn],
               Map[(Int, Int), Pawn],
               Map[(Int, Int), Pawn])
               = {
-    if (turn<2)
+    if (round==0)
       return (List(), pawns, Map.empty[(Int, Int), Pawn])
     val c@(pos@(cx, cy), cd) = ray.last
-    if (cx<0 | cx>9 | cy<0 | cy>7)
+    if (cx < 0 | cx > 9 | cy < -1 | cy > 8)
       return (ray, pawns, Map.empty[(Int, Int), Pawn])
     val (dx, dy) = dir2pos(cd)
     val npos@(nx, ny) = (cx+dx, cy+dy)

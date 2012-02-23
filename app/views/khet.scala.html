@@ -1,17 +1,9 @@
-@()(implicit request: RequestHeader)
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"> 
-<head> 
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /> 
-  <title>Quoridor</title>
-  <script src="@routes.Assets.at("javascripts/jquery-1.7.1.min.js")" type="text/javascript"></script>
-  <script src="@routes.Assets.at("javascripts/raphael.js")" type="text/javascript"></script>
-</head> 
-<body id="body"> 
-Quoridor:
-<div id="board" width="1200" height="800"> </div>
-<script src="@routes.Assets.at("javascripts/khet.js")" type="text/javascript"></script>
+@(username:Option[String], kid:Option[String])(implicit request: RequestHeader)
+
+<script src="@routes.Assets.at("javascripts/raphael.js")" type="text/javascript"></script>
 <script type="text/javascript">
-  window.Application.launch_khet("@routes.Application.khetWS().webSocketURL()");
+  $.getScript("@routes.Assets.at("javascripts/khet.js")",
+              function(data, textStatus, jqxhr) {
+	        window.Application.launch_khet("@routes.Application.khetWS(username, kid).webSocketURL()")
+	      });
 </script> 
-</body> 
-</html> 

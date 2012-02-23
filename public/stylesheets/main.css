@@ -131,5 +131,7 @@ body {
     /*border-style: solid;
     border-width: 10px;
     border-color: #00F;*/
+    width: 500px;
+    height: 550px;
     float: left;
 }

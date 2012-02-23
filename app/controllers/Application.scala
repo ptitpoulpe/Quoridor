@@ -48,9 +48,19 @@ object Application extends Controller {
     Ok(views.html.quoridor(username, qid))
   }
 
-  def getBoard(username:Option[String], qid:Option[String]) = WebSocket.async[JsValue] { request =>
+  def quoridorWS(username:Option[String], qid:Option[String]) = WebSocket.async[JsValue] { request =>
     QuoridorServer.create_or_join(username, qid)
   }
 
+  /**
+   * Handles the keth page
+   */
+  def khet(username:Option[String], kid:Option[String]) = Action { implicit request => 
+    Ok(views.html.khet(username, kid))
+  }
+
+  def khetWS(username:Option[String], kid:Option[String]) = WebSocket.async[JsValue] { request =>
+    KhetServer.create_or_join(username, kid)
+  }
 
 }

@@ -94,7 +94,13 @@ window.Application.launch_quoridor = (ws_url) ->
     return [curleft,curtop]
 
   init = ->
-    board = document.getElementById('board')
+    #board = document.getElementById('board')
+    $('#board>*').remove()
+    board = document.createElement('canvas')
+    board.setAttribute("width", "500")
+    board.setAttribute("height", "550")
+    $('#board').append($(board))
+
     # compute board offset
     [b_x_offset, b_y_offset] = find_pos(board)
     
